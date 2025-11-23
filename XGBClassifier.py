@@ -96,15 +96,13 @@ plt.legend()
 plt.show()
 '''
 
-#--------------------------------------Backtest-----------------------------------#
+#Backtest
 
-# 取验证集对应的真实价格
 val_prices = btc_data["Price"].iloc[len(train_X):].reset_index(drop=True)
 
-# 计算每日真实收益率
+
 price_returns = val_prices.pct_change().fillna(0)
 
-# 参数设置
 threshold = 0.045    
 position_size = 0.5 # 固定 50% 仓位
 TP = 0.05           # 止盈 5%
@@ -116,38 +114,34 @@ for i in range(len(price_returns)):
     daily_ret = price_returns[i]
     pred = val_preds[i]  # 1 = 做多, 0 = 做空
 
-    # 不满足阈值 -> 不交易
     if abs(daily_ret) < threshold:
         strategy_returns.append(0)
         continue
 
-    # 做多情况
     if pred == 1:
         if daily_ret >= TP:
-            strategy_returns.append(TP * position_size)  # 止盈
+            strategy_returns.append(TP * position_size)  
         elif daily_ret <= -SL:
-            strategy_returns.append(-SL * position_size)  # 止损
+            strategy_returns.append(-SL * position_size)  
         else:
             strategy_returns.append(daily_ret * position_size)
 
-    # 做空情况
     else:
         if daily_ret <= -TP:
-            strategy_returns.append(TP * position_size)  # 空头止盈
+            strategy_returns.append(TP * position_size)  
         elif daily_ret >= SL:
-            strategy_returns.append(-SL * position_size)  # 空头止损
+            strategy_returns.append(-SL * position_size)  
         else:
             strategy_returns.append(-daily_ret * position_size)
 
-# 转为 Series
+
 strategy_returns = pd.Series(strategy_returns)
-hold_returns = price_returns  # 对照组：全程持有
+hold_returns = price_returns  
 
 # 计算累计收益
 strategy_cum = (1 + strategy_returns).cumprod()
 hold_cum = (1 + hold_returns).cumprod()
 
-# 输出结果
 print("\n===== Enhanced Backtest (TP/SL + Position + Threshold) =====")
 print(f"Strategy Final Return: {(strategy_cum.iloc[-1] - 1) * 100:.2f}%")
 print(f"Buy & Hold Return: {(hold_cum.iloc[-1] - 1) * 100:.2f}%")
@@ -160,7 +154,6 @@ sharpe_ratio_annualized = sharpe_ratio * np.sqrt(252)
 print(f"Daily Sharpe Ratio: {sharpe_ratio:.4f}")
 print(f"Annualized Sharpe Ratio: {sharpe_ratio_annualized:.4f}")
 
-# 绘图
 plt.figure(figsize=(10, 5))
 plt.plot(strategy_cum, label="Strategy (Enhanced)", linewidth=2)
 plt.plot(hold_cum, label="Buy & Hold", linestyle="--")
@@ -171,16 +164,13 @@ plt.legend()
 plt.grid(True)
 plt.show()
 
-#----------------------------------Equity Curve---------------------------------------------
-# === 累计收益 ===
+#Equity Curve
 strategy_cum = (1 + strategy_returns).cumprod()
 hold_cum = (1 + hold_returns).cumprod()
 
-# === 最大回撤计算 ===
 strategy_roll_max = strategy_cum.cummax()
 drawdown = (strategy_cum - strategy_roll_max) / strategy_roll_max
 
-# === 绘图 ===
 plt.figure(figsize=(12,6))
 
 # 资金曲线
@@ -192,7 +182,6 @@ plt.ylabel("Return (Multiplier)")
 plt.legend()
 plt.grid(True)
 
-# 回撤曲线
 plt.subplot(2,1,2)
 plt.plot(drawdown, color="red")
 plt.title("Drawdown (ETH Strategy)")
@@ -203,6 +192,6 @@ plt.grid(True)
 plt.tight_layout()
 plt.show()
 
-# === 输出回撤指标 ===
 max_drawdown = drawdown.min()
+
 print(f"Max Drawdown (Strategy): {max_drawdown:.2%}")
